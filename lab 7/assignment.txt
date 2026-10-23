@@ -1,0 +1,3861 @@
+PAGE 1
+Laboratory Work: Smart Game Store Using 
+Structural Design Patterns
+ 
+1. Objective
+ 
+Develop a web application called
+ 
+Smart Game Store
+ 
+using Python, Flask, and SQLite. The 
+application allows users to manage gaming products and create orders.
+ 
+Students must implement CRUD operations and use at least TWO Structural Design Patterns:
+ 
+?
+ 
+Facade
+ 
+?
+ 
+Flyweight
+ 
+?
+ 
+Private Class Data
+ 
+?
+ 
+Proxy
+ 
+2. Task Description
+ 
+Imagine that you are developing an online gaming store. The store sells gaming laptops, 
+keyboards, mice, and headsets.
+ 
+Your application must allow users to:
+ 
+1.
+ 
+View all gaming products.
+ 
+2.
+ 
+Add new products.
+ 
+3.
+ 
+Edit product information.
+ 
+4.
+ 
+Delete products.
+ 
+5.
+ 
+Place orders and calculate the total price.
+ 
+6.
+ 
+View orders.
+ 
+You must implement the following design patterns:
+ 
+Facade Pattern:
+ 
+Simplify the order creation process. One method must coordinate product 
+validation, price calculation, and saving the order.
+ 
+Proxy Pattern:
+ 
+Restrict product management operations to administrators. Customers can 
+view products and place orders but cannot add, edit, or delete products.
+ 
+3. Technologies
+ 
+?
+ 
+Python
+ 
+?
+ 
+Flask
+ 
+?
+ 
+SQLite
+ 
+?
+ 
+HTML
+ 
+?
+ 
+CSS
+ 
+4. Database Requirements
+ 
+
+
+PAGE 2
+Create two tables:
+ 
+Products:
+ 
+id
+,
+ 
+name
+,
+ 
+category
+,
+ 
+price
+ 
+Orders:
+ 
+id
+,
+ 
+customer_name
+,
+ 
+product_id
+,
+ 
+quantity
+,
+ 
+total_price
+ 
+5. CRUD Requirements
+ 
+?
+ 
+Create: Add products and orders.
+ 
+?
+ 
+Read: Display products and orders.
+ 
+?
+ 
+Update: Edit product information.
+ 
+?
+ 
+Delete: Delete products.
+ 
+6. Deliverables
+ 
+1.
+ 
+Complete source code.
+ 
+2.
+ 
+Working web application.
+ 
+3.
+ 
+SQLite database.
+ 
+4.
+ 
+Screenshots of the application.
+ 
+5.
+ 
+Explanation of how Facade and Proxy are implemented.
+ 
+7. Assessment 
+—
+ 
+100 Points
+ 
+Criterion
+ 
+Points
+ 
+Flask application
+ 
+10
+ 
+SQLite database
+ 
+15
+ 
+CRUD operations
+ 
+30
+ 
+Facade Pattern
+ 
+15
+ 
+Proxy Pattern
+ 
+15
+ 
+HTML/CSS interface
+ 
+10
+ 
+Code explanation
+ 
+5
+ 
+Total
+ 
+100
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+
+PAGE 3
+Structure:
+ 
+smart_game_store/
+ 
+├
+── app.py
+ 
+├
+── patterns.py
+ 
+├
+── database.py
+ 
+├
+── templates/
+ 
+│   
+├
+── base.html
+ 
+│   
+├
+── products.html
+ 
+│   
+├
+── product_form.html
+ 
+│   └── orders.html
+ 
+└── static/
+ 
+    
+└── style.css
+ 
+ 
+1)
+ 
+D
+atabase.
+py
+ 
+ 
+ 
+import sqlite3
+ 
+ 
+DB_NAME = "store.db"
+ 
+ 
+ 
+def connect():
+ 
+    
+conn = sqlite3.connect(DB_NAME)
+ 
+    
+conn.row_factory = sqlite3.Row
+ 
+    
+conn.execute("PRAGMA foreign_keys = ON")
+ 
+    
+return conn
+ 
+ 
+ 
+def init_db():
+ 
+    
+conn = connect()
+ 
+ 
+    
+conn.executescript("""
+ 
+        
+CREATE TABLE IF NOT EXISTS products (
+ 
+            
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+ 
+            
+name TEXT NOT NULL,
+ 
+            
+category TEXT NOT NULL,
+ 
+            
+price REAL NOT NULL CHECK(price >= 0)
+ 
+        
+);
+ 
+ 
+        
+CREATE TABLE IF NOT EXISTS orders (
+ 
+            
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+ 
+            
+customer_name TEXT NOT NULL,
+ 
+            
+product_id INTEGER NOT NULL,
+ 
+            
+quantity INTEGER NOT NULL CHECK(quantity > 0),
+ 
+            
+total_price REAL NOT NULL,
+ 
+            
+FOREIGN KEY(product_id) REFERENCES products(id)
+ 
+                
+ON DELETE RESTRICT
+ 
+
+
+PAGE 4
+        
+);
+ 
+    
+""")
+ 
+ 
+    
+count = conn.execute(
+ 
+        
+"SELECT COUNT(*) FROM products"
+ 
+    
+).fetchone()[0]
+ 
+ 
+    
+if count == 0:
+ 
+        
+conn.executemany("""
+ 
+            
+INSERT INTO products (name, category, price)
+ 
+            
+VALUES (?, ?, ?)
+ 
+        
+""", [
+ 
+            
+("Gaming Mouse", "Accessories", 35),
+ 
+            
+("Gaming Keyboard", "Accessories", 75),
+ 
+            
+("Gaming Laptop", "Computers", 1200),
+ 
+            
+("Gaming Headset", "Audio", 60)
+ 
+        
+])
+ 
+ 
+    
+conn.commit()
+ 
+    
+conn.close()
+ 
+ 
+2.
+ 
+patterns.py
+ 
+ 
+ 
+from database import connect
+ 
+ 
+ 
+# PROXY PATTERN
+ 
+class ProductProxy:
+ 
+    
+def __init__(self, role):
+ 
+        
+self.role = role
+ 
+ 
+    
+def check_permission(self, action):
+ 
+        
+if action == "view":
+ 
+            
+return True
+ 
+ 
+        
+if self.role != "admin":
+ 
+            
+raise PermissionError(
+ 
+                
+"Only administrators can manage products."
+ 
+            
+)
+ 
+ 
+        
+return True
+ 
+ 
+ 
+# FACADE PATTERN
+ 
+class OrderFacade:
+ 
+    
+def place_order(self, customer_name, product_id, quantity):
+ 
+        
+if not customer_name.strip():
+ 
+            
+raise ValueError("Customer name is required.")
+ 
+ 
+        
+if quantity < 1:
+ 
+            
+raise ValueError("Quantity must be at least 1.")
+ 
+ 
+        
+conn = connect()
+ 
+ 
+        
+try:
+ 
+            
+product = conn.execute(
+ 
+
+
+PAGE 5
+                
+"SELECT * FROM products WHERE id = ?",
+ 
+                
+(product_id,)
+ 
+            
+).fetchone()
+ 
+ 
+            
+if product is None:
+ 
+                
+raise ValueError("Product not found.")
+ 
+ 
+            
+total = round(product["price"] * quantity, 2)
+ 
+ 
+            
+conn.execute("""
+ 
+                
+INSERT INTO orders
+ 
+                
+(customer_name, product_id, quantity, total_price)
+ 
+                
+VALUES (?, ?, ?, ?)
+ 
+            
+""", (
+ 
+                
+customer_name.strip(),
+ 
+                
+product_id,
+ 
+                
+quantity,
+ 
+                
+total
+ 
+            
+))
+ 
+ 
+            
+conn.commit()
+ 
+            
+return total
+ 
+ 
+        
+except Exception:
+ 
+            
+conn.rollback()
+ 
+            
+raise
+ 
+ 
+        
+finally:
+ 
+            
+conn.close()
+ 
+ 
+3.
+ 
+app.py
+ 
+ 
+ 
+from flask import (
+ 
+    
+Flask, render_template, request,
+ 
+    
+redirect, url_for, session, flash, abort
+ 
+)
+ 
+from functools import wraps
+ 
+ 
+from database import connect, init_db
+ 
+from patterns import ProductProxy, OrderFacade
+ 
+ 
+app = Flask(__name__)
+ 
+app.secret_key = "change
+-
+this
+-
+demo
+-
+secret"
+ 
+ 
+# Demo accounts for the laboratory
+ 
+USERS = {
+ 
+    
+"admin": {"password": "admin123", "role": "admin"},
+ 
+    
+"student": {"password": "student123", "role": "customer"}
+ 
+}
+ 
+ 
+ 
+def login_required(func):
+ 
+    
+@wraps(func)
+ 
+
+
+PAGE 6
+    
+def wrapper(*args, **kwargs):
+ 
+        
+if "username" not in session:
+ 
+            
+return redirect(url_for("login"))
+ 
+        
+return func(*args, **kwargs)
+ 
+    
+return wrapper
+ 
+ 
+ 
+def check_product_permission(action):
+ 
+    
+proxy = ProductProxy(session.get("role", "customer"))
+ 
+    
+try:
+ 
+        
+proxy.check_permission(action)
+ 
+    
+except PermissionError as error:
+ 
+        
+abort(403, description=str(error))
+ 
+ 
+ 
+@app.route("/login", methods=["GET", "POST"])
+ 
+def login():
+ 
+    
+if request.method == "POST":
+ 
+        
+username = request.form["username"].strip()
+ 
+        
+password = request.form["password"]
+ 
+        
+user = USERS.get(username)
+ 
+ 
+        
+if user and user["password"] == password:
+ 
+            
+session.clear()
+ 
+            
+session["username"] = username
+ 
+            
+session["role"] = user["role"]
+ 
+            
+return redirect(url_for("products"))
+ 
+ 
+        
+flash("Invalid username or password.")
+ 
+ 
+    
+return render_template("base.html", login_page=True)
+ 
+ 
+ 
+@app.route("/logout")
+ 
+def logout():
+ 
+    
+session.clear()
+ 
+    
+return redirect(url_for("login"))
+ 
+ 
+ 
+@app.route("/")
+ 
+@login_required
+ 
+def products():
+ 
+    
+check_product_permission("view")
+ 
+ 
+    
+conn = connect()
+ 
+    
+products = conn.execute(
+ 
+        
+"SELECT * FROM products ORDER BY id DESC"
+ 
+    
+).fetchall()
+ 
+    
+conn.close()
+ 
+ 
+    
+return render_template("products.html", products=products)
+ 
+ 
+ 
+@app.route("/products/add", methods=["GET", "POST"])
+ 
+@login_required
+ 
+def add_product():
+ 
+    
+check_product_permission("create")
+ 
+
+
+PAGE 7
+ 
+    
+if request.method == "POST":
+ 
+        
+name = request.form["name"].strip()
+ 
+        
+category = request.form["category"].strip()
+ 
+ 
+        
+try:
+ 
+            
+price = float(request.form["price"])
+ 
+            
+if not name or not category or price < 0:
+ 
+                
+raise ValueError
+ 
+        
+except ValueError:
+ 
+            
+flash("Enter valid product details.")
+ 
+            
+return redirect(url_for("add_product"))
+ 
+ 
+        
+conn = connect()
+ 
+        
+conn.execute("""
+ 
+            
+INSERT INTO products (name, category, price)
+ 
+            
+VALUES (?, ?, ?)
+ 
+        
+""", (name, category, price))
+ 
+        
+conn.commit()
+ 
+        
+conn.close()
+ 
+ 
+        
+flash("Product added successfully.")
+ 
+        
+return redirect(url_for("products"))
+ 
+ 
+    
+return render_template("product_form.html", product=None)
+ 
+ 
+ 
+@app.route("/products/edit/<int:product_id>",
+ 
+           
+methods=["GET", "POST"])
+ 
+@login_required
+ 
+def edit_product(product_id):
+ 
+    
+check_product_permission("update")
+ 
+ 
+    
+conn = connect()
+ 
+    
+product = conn.execute(
+ 
+        
+"SELECT * FROM products WHERE id = ?", (product_id,)
+ 
+    
+).fetchone()
+ 
+ 
+    
+if product is None:
+ 
+        
+conn.close()
+ 
+        
+abort(404)
+ 
+ 
+    
+if request.method == "POST":
+ 
+        
+name = request.form["name"].strip()
+ 
+        
+category = request.form["category"].strip()
+ 
+ 
+        
+try:
+ 
+            
+price = float(request.form["price"])
+ 
+            
+if not name or not category or price < 0:
+ 
+                
+raise ValueError
+ 
+        
+except ValueError:
+ 
+            
+conn.close()
+ 
+            
+flash("Enter valid product details.")
+ 
+            
+return redirect(url_for("edit_product",
+ 
+                                    
+product_id=product_id))
+ 
+ 
+        
+conn.execute("""
+ 
+
+
+PAGE 8
+            
+UPDATE products
+ 
+            
+SET name = ?, category = ?, price = ?
+ 
+            
+WHERE id = ?
+ 
+        
+""", (name, category, price, product_id))
+ 
+        
+conn.commit()
+ 
+        
+conn.close()
+ 
+ 
+        
+flash("Product updated successfully.")
+ 
+        
+return redirect(url_for("products"))
+ 
+ 
+    
+conn.close()
+ 
+    
+return render_template("product_form.html", product=product)
+ 
+ 
+ 
+@app.route("/products/delete/<int:product_id>",
+ 
+           
+methods=["POST"])
+ 
+@login_required
+ 
+def delete_product(product_id):
+ 
+    
+check_product_permission("delete")
+ 
+ 
+    
+conn = connect()
+ 
+    
+try:
+ 
+        
+conn.execute(
+ 
+            
+"DELETE FROM products WHERE id = ?", (product_id,)
+ 
+        
+)
+ 
+        
+conn.commit()
+ 
+        
+flash("Product deleted.")
+ 
+    
+except Exception:
+ 
+        
+conn.rollback()
+ 
+        
+flash("Cannot delete a product used in an order.")
+ 
+    
+finally:
+ 
+        
+conn.close()
+ 
+ 
+    
+return redirect(url_for("products"))
+ 
+ 
+ 
+@app.route("/orders")
+ 
+@login_required
+ 
+def orders():
+ 
+    
+conn = connect()
+ 
+ 
+    
+if session["role"] == "admin":
+ 
+        
+rows = conn.execute("""
+ 
+            
+SELECT orders.*, products.name AS product_name
+ 
+            
+FROM orders
+ 
+            
+JOIN products ON products.id = orders.product_id
+ 
+            
+ORDER BY orders.id DESC
+ 
+        
+""").fetchall()
+ 
+    
+else:
+ 
+        
+rows = conn.execute("""
+ 
+            
+SELECT orders.*, products.name AS product_name
+ 
+            
+FROM orders
+ 
+            
+JOIN products ON products.id = orders.product_id
+ 
+            
+WHERE orders.customer_name = ?
+ 
+            
+ORDER BY orders.id DESC
+ 
+        
+""", (session["username"],)).fetchall()
+ 
+ 
+
+
+PAGE 9
+    
+conn.close()
+ 
+    
+return render_template("orders.html", orders=rows)
+ 
+ 
+ 
+@app.route("/orders/add/<int:product_id>", methods=["POST"])
+ 
+@login_required
+ 
+def add_order(product_id):
+ 
+    
+try:
+ 
+        
+quantity = int(request.form["quantity"])
+ 
+ 
+        
+facade = OrderFacade()
+ 
+        
+total = facade.place_order(
+ 
+            
+session["username"], product_id, quantity
+ 
+        
+)
+ 
+ 
+        
+flash(f"Order placed! Total: ${total:.2f}")
+ 
+    
+except (ValueError, TypeError) as error:
+ 
+        
+flash(str(error))
+ 
+ 
+    
+return redirect(url_for("products"))
+ 
+ 
+ 
+@app.errorhandler(403)
+ 
+def forbidden(error):
+ 
+    
+return f"Access denied: {error.description}", 403
+ 
+ 
+ 
+if __name__ == "__main__":
+ 
+    
+init_db()
+ 
+    
+app.run(debug=True)
+ 
+ 
+4.
+ 
+templates/base.html
+ 
+ 
+<!DOCTYPE html>
+ 
+<html lang="en">
+ 
+<head>
+ 
+    
+<meta charset="UTF
+-
+8">
+ 
+    
+<meta name="viewport" content="width=device
+-
+width, initial
+-
+scale=1">
+ 
+    
+<title>Smart Game Store</title>
+ 
+    
+<link rel="stylesheet"
+ 
+          
+href="{{ url_for('static', filename='style.css') }}">
+ 
+</head>
+ 
+<body>
+ 
+<header>
+ 
+    
+<h2>
+?
+ 
+Smart Game Store</h2>
+ 
+    
+{% if session.get('username') %}
+ 
+    
+<nav>
+ 
+        
+<a href="{{ url_for('products') }}">Products</a>
+ 
+        
+<a href="{{ url_for('orders') }}">Orders</a>
+ 
+        
+<a href="{{ url_for('logout') }}">Logout</a>
+ 
+    
+</nav>
+ 
+    
+{% endif %}
+ 
+</header>
+ 
+ 
+<main class="container">
+ 
+
+
+PAGE 10
+    
+{% for message in get_flashed_messages() %}
+ 
+        
+<p class="message">{{ message }}</p>
+ 
+    
+{% endfor %}
+ 
+ 
+    
+{% if login_page %}
+ 
+    
+<section class="panel">
+ 
+        
+<h1>Welcome Back</h1>
+ 
+        
+<form method="POST" action="{{ url_for('login') }}">
+ 
+            
+<label>Username</label>
+ 
+            
+<input name="username" required>
+ 
+            
+<label>Password</label>
+ 
+            
+<input type="password" name="password" required>
+ 
+            
+<button>Login</button>
+ 
+        
+</form>
+ 
+        
+<p>Admin: admin / admin123</p>
+ 
+        
+<p>Customer: student / student123</p>
+ 
+    
+</section>
+ 
+    
+{% else %}
+ 
+        
+{% block content %}{% endblock %}
+ 
+    
+{% endif %}
+ 
+</main>
+ 
+</body>
+ 
+</html>
+ 
+ 
+5.
+ 
+templates/products.html
+ 
+ 
+{% extends "base.html" %}
+ 
+{% block content %}
+ 
+ 
+<h1>Gaming Products</h1>
+ 
+ 
+{% if session.get('role') == 'admin' %}
+ 
+<a class="button" href="{{ url_for('add_product') }}">
+ 
+    
++ Add Product
+ 
+</a>
+ 
+{% endif %}
+ 
+ 
+<div class="grid">
+ 
+{% for product in products %}
+ 
+    
+<div class="card">
+ 
+        
+<h2>{{ product.name }}</h2>
+ 
+        
+<p>Category: {{ product.category }}</p>
+ 
+        
+<h3>${{ "%.2f"|format(product.price) }}</h3>
+ 
+ 
+        
+<form method="POST"
+ 
+              
+action="{{ url_for('add_order',
+ 
+                                 
+product_id=product.id) }}">
+ 
+            
+<label>Quantity</label>
+ 
+            
+<input type="number" name="quantity"
+ 
+                   
+min="1" value="1" required>
+ 
+            
+<button>Place Order</button>
+ 
+        
+</form>
+ 
+ 
+        
+{% if session.get('role') == 'admin' %}
+ 
+        
+<a href="{{ url_for('edit_product',
+ 
+                            
+product_id=product.id) }}">
+ 
+            
+Edit
+ 
+        
+</a>
+ 
+ 
+        
+<form method="POST"
+ 
+              
+action="{{ url_for('delete_product',
+ 
+                                 
+product_id=product.id) }}">
+ 
+
+
+PAGE 11
+            
+<button class="danger">Delete</button>
+ 
+        
+</form>
+ 
+        
+{% endif %}
+ 
+    
+</div>
+ 
+{% else %}
+ 
+    
+<p>No products available.</p>
+ 
+{% endfor %}
+ 
+</div>
+ 
+ 
+{% endblock %}
+ 
+ 
+6.
+ 
+templates/product_form.html
+ 
+ 
+{% extends "base.html" %}
+ 
+{% block content %}
+ 
+ 
+<section class="panel">
+ 
+    
+<h1>{{ 'Edit Product' if product else 'Add Product' }}</h1>
+ 
+ 
+    
+<form method="POST">
+ 
+        
+<label>Product Name</label>
+ 
+        
+<input name="name"
+ 
+               
+value="{{ product.name if product else '' }}"
+ 
+               
+required>
+ 
+ 
+        
+<label>Category</label>
+ 
+        
+<input name="category"
+ 
+               
+value="{{ product.category if product else '' }}"
+ 
+               
+required>
+ 
+ 
+        
+<label>Price</label>
+ 
+        
+<input type="number" name="price"
+ 
+               
+min="0" step="0.01"
+ 
+               
+value="{{ product.price if product else '' }}"
+ 
+               
+required>
+ 
+ 
+        
+<button>Save Product</button>
+ 
+    
+</form>
+ 
+</section>
+ 
+ 
+{% endblock %}
+ 
+ 
+7.
+ 
+templates/orders.html
+ 
+ 
+ 
+{% extends "base.html" %}
+ 
+{% block content %}
+ 
+ 
+<h1>My Orders</h1>
+ 
+ 
+<table>
+ 
+    
+<thead>
+ 
+        
+<tr>
+ 
+
+
+PAGE 12
+            
+<th>ID</th>
+ 
+            
+<th>Customer</th>
+ 
+            
+<th>Product</th>
+ 
+            
+<th>Quantity</th>
+ 
+            
+<th>Total</th>
+ 
+        
+</tr>
+ 
+    
+</thead>
+ 
+    
+<tbody>
+ 
+    
+{% for order in orders %}
+ 
+        
+<tr>
+ 
+            
+<td>{{ order.id }}</td>
+ 
+            
+<td>{{ order.customer_name }}</td>
+ 
+            
+<td>{{ order.product_name }}</td>
+ 
+            
+<td>{{ order.quantity }}</td>
+ 
+            
+<td>${{ "%.2f"|format(order.total_price) }}</td>
+ 
+        
+</tr>
+ 
+    
+{% else %}
+ 
+        
+<tr><td colspan="5">No orders found.</td></tr>
+ 
+    
+{% endfor %}
+ 
+    
+</tbody>
+ 
+</table>
+ 
+ 
+{% endblock %}
+ 
+ 
+8.
+ 
+static
+?????????
+?
+?
+ 
+body {
+ 
+    
+margin: 0;
+ 
+    
+font
+-
+family: Arial, sans
+-
+serif;
+ 
+    
+background: #101426;
+ 
+    
+color: #f4f4ff;
+ 
+}
+ 
+ 
+header {
+ 
+    
+padding: 20px 5%;
+ 
+    
+background: #202744;
+ 
+    
+display: flex;
+ 
+    
+justify
+-
+content: space
+-
+between;
+ 
+    
+align
+-
+items: center;
+ 
+
+
+PAGE 13
+    
+flex
+-
+wrap: wrap;
+ 
+}
+ 
+ 
+nav {
+ 
+    
+display: flex;
+ 
+    
+gap: 18px;
+ 
+}
+ 
+ 
+a {
+ 
+    
+color: #a8b4ff;
+ 
+    
+text
+-
+decoration: none;
+ 
+}
+ 
+ 
+.container {
+ 
+    
+max
+-
+width: 1100px;
+ 
+    
+margin: 35px auto;
+ 
+    
+padding: 0 20px;
+ 
+}
+ 
+ 
+.grid {
+ 
+    
+display: grid;
+ 
+    
+grid
+-
+template
+-
+columns: repeat(auto
+-
+fit, minmax(220px, 1fr));
+ 
+    
+gap: 20px;
+ 
+    
+margin
+-
+top: 25px;
+ 
+}
+ 
+ 
+.card, .panel {
+ 
+
+
+PAGE 14
+    
+background: #202744;
+ 
+    
+border: 1px solid #394465;
+ 
+    
+border
+-
+radius: 14px;
+ 
+    
+padding: 22px;
+ 
+}
+ 
+ 
+.panel {
+ 
+    
+max
+-
+width: 450px;
+ 
+    
+margin: 40px auto;
+ 
+}
+ 
+ 
+form {
+ 
+    
+display: grid;
+ 
+    
+gap: 10px;
+ 
+    
+margin: 15px 0;
+ 
+}
+ 
+ 
+input {
+ 
+    
+padding: 11px;
+ 
+    
+border
+-
+radius: 7px;
+ 
+    
+border: 1px solid #596587;
+ 
+    
+background: #101426;
+ 
+    
+color: white;
+ 
+}
+ 
+ 
+button, .button {
+ 
+    
+padding: 11px 16px;
+ 
+
+
+PAGE 15
+    
+background: #777bff;
+ 
+    
+color: white;
+ 
+    
+border: none;
+ 
+    
+border
+-
+radius: 7px;
+ 
+    
+cursor: pointer;
+ 
+    
+display: inline
+-
+block;
+ 
+}
+ 
+ 
+.danger {
+ 
+    
+background: #c7465c;
+ 
+}
+ 
+ 
+.message {
+ 
+    
+background: #244c42;
+ 
+    
+padding: 12px;
+ 
+    
+border
+-
+radius: 8px;
+ 
+}
+ 
+ 
+table {
+ 
+    
+width: 100%;
+ 
+    
+border
+-
+collapse: collapse;
+ 
+    
+background: #202744;
+ 
+}
+ 
+ 
+th, td {
+ 
+    
+padding: 14px;
+ 
+    
+border
+-
+bottom: 1px solid #394465;
+ 
+
+
+PAGE 16
+    
+text
+-
+align: left;
+ 
+}
+ 
+ 
+@media (max
+-
+width: 600px) {
+ 
+    
+header {
+ 
+        
+gap: 12px;
+ 
+    
+}
+ 
+ 
+    
+nav {
+ 
+        
+flex
+-
+wrap: wrap;
+ 
+    
+}
+ 
+}
+ 
+ 
+ 
+
+
+PAGE 17
+Smart
+ 
+Game
+ 
+Store
+ 
+—
+ 
+Launch
+ 
+Instruct?ons
+ 
+and
+ 
+Proje
+ct
+ 
+Explanat?on
+ 
+This
+ 
+project
+ 
+is
+ 
+a
+ 
+web
+ 
+application
+ 
+called
+ 
+Smart
+ 
+Game
+ 
+Store,
+ 
+developed
+ 
+using
+ 
+Python,
+ 
+Flask,
+ 
+and
+ 
+SQLite.
+ 
+It
+ 
+allows
+ 
+users
+ 
+to
+ 
+view
+ 
+gaming
+ 
+products,
+ 
+place
+ 
+orders,
+ 
+and
+ 
+manage
+ 
+products
+ 
+ac
+cording
+ 
+to
+ 
+their
+ 
+access
+ 
+permissions.
+ 
+The
+ 
+application
+ 
+demonstrates
+ 
+two
+ 
+Structural
+ 
+Design
+ 
+Patterns:
+ 
+?
+ 
+Facade
+ 
+Pattern
+ 
+—
+ 
+simplifies
+ 
+interactions
+ 
+with
+ 
+the
+ 
+database
+ 
+and
+ 
+business
+ 
+logic.
+ 
+?
+ 
+Proxy
+ 
+Pattern
+ 
+—
+ 
+controls
+ 
+access
+ 
+to
+ 
+product
+ 
+management
+ 
+operations
+ 
+based
+ 
+on
+ 
+the
+ 
+us
+er's
+ 
+role.
+ 
+1.
+ 
+Requ?rements
+ 
+Before
+ 
+running
+ 
+the
+ 
+project,
+ 
+make
+ 
+sure
+ 
+you
+ 
+have
+ 
+installed:
+ 
+?
+ 
+Python
+ 
+3.10
+ 
+or
+ 
+later
+ 
+?
+ 
+Visual
+ 
+Studio
+ 
+Code
+ 
+or
+ 
+PyCharm
+ 
+?
+ 
+A
+ 
+web
+ 
+browser
+ 
+?
+ 
+Flask
+ 
+framework
+ 
+Check
+ 
+your
+ 
+Python
+ 
+version
+ 
+in
+ 
+the
+ 
+terminal:
+ 
+????????
+??
+???????
+?
+Install
+ 
+Flask:
+ 
+????????
+?
+???????????????????
+?
+2.
+ 
+Project
+ 
+structure
+ 
+Create
+ 
+a
+ 
+project
+ 
+folder
+ 
+named
+ 
+????????????????
+ 
+and
+ 
+organize
+ 
+the
+ 
+files
+ 
+as
+ 
+follows:
+ 
+smart_game_store/
+ 
+??????
+ 
+Main
+ 
+Flask
+ 
+application
+ 
+???????????
+ 
+Database
+ 
+operations
+ 
+???????????
+ 
+
+
+PAGE 18
+Facade
+ 
+and
+ 
+Proxy
+ 
+patterns
+ 
+??????????
+ 
+?????????
+ 
+?????????????
+ 
+?????????????????
+ 
+???????????
+ 
+???????
+ 
+?????????
+ 
+Make
+ 
+sure
+ 
+each
+ 
+file
+ 
+is
+ 
+saved
+ 
+in
+ 
+the
+ 
+correct
+ 
+location.
+ 
+Flask
+ 
+looks
+ 
+for
+ 
+HTML
+ 
+templates
+ 
+in
+ 
+the
+ 
+?????????
+ 
+folder
+ 
+and
+ 
+static
+ 
+files
+ 
+such
+ 
+as
+ 
+CSS
+ 
+in
+ 
+the
+ 
+??????
+ 
+folder.
+ 
+3.
+ 
+Open
+ 
+the
+ 
+project
+ 
+?n
+ 
+the
+ 
+term?nal
+ 
+Navigate
+ 
+to
+ 
+the
+ 
+project
+ 
+directory.
+ 
+For
+ 
+example,
+ 
+on
+ 
+macOS:
+ 
+?????????????????????????????
+?
+If
+ 
+you
+ 
+created
+ 
+the
+ 
+folder
+ 
+somewhere
+ 
+else,
+ 
+replace
+ 
+the
+ 
+path
+ 
+with
+ 
+your
+ 
+actual
+ 
+folder
+ 
+location.
+ 
+You
+ 
+can
+ 
+also
+ 
+open
+ 
+the
+ 
+project
+ 
+in
+ 
+VS
+ 
+Code
+ 
+and
+ 
+select
+ 
+Terminal
+ 
+→
+ 
+New
+ 
+Terminal.
+ 
+4.
+ 
+Run
+ 
+the
+ 
+appl?cat?on
+ 
+Execute
+ 
+the
+ 
+following
+ 
+command:
+ 
+??????????????
+?
+If
+ 
+your
+ 
+system
+ 
+uses
+ 
+the
+ 
+??????
+ 
+command
+ 
+instead,
+ 
+you
+ 
+can
+ 
+run:
+ 
+?????????????
+?
+When
+ 
+the
+ 
+application
+ 
+starts
+ 
+successfully,
+ 
+Flask
+ 
+displays
+ 
+a
+ 
+message
+ 
+similar
+ 
+to:
+ 
+??????????????????????????????????
+?
+Open
+ 
+this
+ 
+address
+ 
+in
+ 
+your
+ 
+browser:
+ 
+Open
+ 
+Smart
+ 
+Game
+ 
+Store
+ 
+—
+ 
+http://127.0.0.1:5000
+ 
+Important:
+ 
+Keep
+ 
+the
+ 
+terminal
+ 
+open
+ 
+while
+ 
+using
+ 
+the
+ 
+application.
+ 
+To
+ 
+stop
+ 
+the
+ 
+server,
+ 
+press
+ 
+??
+??
+?
+?
+?
+?
+ 
+in
+ 
+the
+ 
+terminal.
+ 
+
+
+PAGE 19
+5.
+ 
+Log
+ 
+?n
+ 
+to
+ 
+the
+ 
+appl?cat?on
+ 
+Use
+ 
+the
+ 
+demonstration
+ 
+accounts
+ 
+configured
+ 
+in
+ 
+the
+ 
+project.
+ 
+User
+ 
+role
+ 
+Username
+ 
+Password
+ 
+Administrator
+ 
+?????
+ 
+????????
+ 
+Student
+ 
+/
+ 
+Customer
+ 
+???????
+ 
+??????????
+ 
+The
+ 
+accounts
+ 
+are
+ 
+for
+ 
+educational
+ 
+demonstration
+ 
+only.
+ 
+Do
+ 
+not
+ 
+use
+ 
+these
+ 
+passwords
+ 
+in
+ 
+a
+ 
+publi
+cly
+ 
+deployed
+ 
+application.
+ 
+Adm?n?strator
+ 
+perm?ss?ons
+ 
+The
+ 
+administrator
+ 
+can:
+ 
+?
+ 
+View
+ 
+all
+ 
+gaming
+ 
+products.
+ 
+?
+ 
+Add
+ 
+new
+ 
+products.
+ 
+?
+ 
+Edit
+ 
+existing
+ 
+products.
+ 
+?
+ 
+Delete
+ 
+products,
+ 
+subject
+ 
+to
+ 
+database
+ 
+constraints.
+ 
+?
+ 
+View
+ 
+customer
+ 
+orders.
+ 
+Student
+ 
+/
+ 
+Customer
+ 
+perm?ss?ons
+ 
+The
+ 
+customer
+ 
+can:
+ 
+?
+ 
+Browse
+ 
+available
+ 
+gaming
+ 
+products.
+ 
+?
+ 
+View
+ 
+product
+ 
+details
+ 
+and
+ 
+prices.
+ 
+?
+ 
+Place
+ 
+orders.
+ 
+?
+ 
+View
+ 
+orders,
+ 
+depending
+ 
+on
+ 
+the
+ 
+routes
+ 
+and
+ 
+permissions
+ 
+implemented
+ 
+in
+ 
+the
+ 
+project.
+ 
+If
+ 
+the
+ 
+customer
+ 
+receives
+ 
+a
+ 
+???
+?
+?????????
+ 
+error
+ 
+when
+ 
+placing
+ 
+an
+ 
+order,
+ 
+check
+ 
+the
+ 
+Proxy
+ 
+pe
+rmission
+ 
+rules
+ 
+in
+ 
+???????????
+.
+ 
+The
+ 
+Proxy
+ 
+must
+ 
+explicitly
+ 
+permit
+ 
+the
+ 
+????????????
+ 
+action
+ 
+for
+ 
+customers.
+ 
+6.
+ 
+How
+ 
+to
+ 
+test
+ 
+the
+ 
+appl?cat?on
+ 
+Follow
+ 
+these
+ 
+steps
+ 
+to
+ 
+verify
+ 
+the
+ 
+main
+ 
+functions.
+ 
+1.
+ 
+Start
+ 
+the
+ 
+application.
+ 
+Run
+ 
+???????
+?
+??????
+ 
+and
+ 
+open
+ 
+the
+ 
+local
+ 
+address
+ 
+in
+ 
+your
+ 
+brow
+ser.
+ 
+2.
+ 
+Log
+ 
+in
+ 
+as
+ 
+administrator.
+ 
+Use
+ 
+?????
+ 
+and
+ 
+????????
+.
+ 
+3.
+ 
+Create
+ 
+a
+ 
+product.
+ 
+Enter
+ 
+a
+ 
+product
+ 
+name,
+ 
+description,
+ 
+price,
+ 
+and
+ 
+available
+ 
+quantity.
+ 
+4.
+ 
+Edit
+ 
+a
+ 
+product.
+ 
+Change
+ 
+its
+ 
+price
+ 
+or
+ 
+quantity
+ 
+and
+ 
+save
+ 
+the
+ 
+changes.
+ 
+5.
+ 
+Log
+ 
+in
+ 
+as
+ 
+a
+ 
+customer.
+ 
+Use
+ 
+???????
+ 
+and
+ 
+??????????
+ 
+to
+ 
+test
+ 
+customer
+ 
+access.
+ 
+6.
+ 
+Place
+ 
+an
+ 
+order.
+ 
+Select
+ 
+a
+ 
+product
+ 
+and
+ 
+enter
+ 
+the
+ 
+requested
+ 
+quantity.
+ 
+7.
+ 
+Check
+ 
+the
+ 
+orders
+ 
+page.
+ 
+Confirm
+ 
+that
+ 
+the
+ 
+order
+ 
+has
+ 
+been
+ 
+stored
+ 
+in
+ 
+the
+ 
+database.
+ 
+
+
+PAGE 20
+8.
+ 
+Test
+ 
+access
+ 
+restrictions.
+ 
+Verify
+ 
+that
+ 
+a
+ 
+customer
+ 
+cannot
+ 
+add,
+ 
+edit,
+ 
+or
+ 
+delete
+ 
+products
+ 
+t
+hrough
+ 
+administrator
+-
+only
+ 
+routes.
+ 
+7.
+ 
+How
+ 
+the
+ 
+database
+ 
+works
+ 
+The
+ 
+project
+ 
+uses
+ 
+SQLite,
+ 
+a
+ 
+lightweight
+ 
+relational
+ 
+database.
+ 
+It
+ 
+stores
+ 
+data
+ 
+in
+ 
+a
+ 
+local
+ 
+database
+ 
+file,
+ 
+typically
+ 
+named
+ 
+????????
+.
+ 
+The
+ 
+main
+ 
+tables
+ 
+are:
+ 
+?
+ 
+products
+ 
+—
+ 
+stores
+ 
+product
+ 
+names,
+ 
+descriptions,
+ 
+prices,
+ 
+and
+ 
+quantities.
+ 
+?
+ 
+orders
+ 
+—
+ 
+stores
+ 
+customer
+ 
+orders,
+ 
+product
+ 
+references,
+ 
+quantities,
+ 
+and
+ 
+order
+ 
+totals.
+ 
+?
+ 
+users
+ 
+—
+ 
+stores
+ 
+the
+ 
+user
+ 
+accounts
+ 
+and
+ 
+roles,
+ 
+if
+ 
+implemented
+ 
+in
+ 
+the
+ 
+supplied
+ 
+database
+ 
+code.
+ 
+SQLite
+ 
+saves
+ 
+the
+ 
+data
+ 
+between
+ 
+application
+ 
+restarts.
+ 
+You
+ 
+do
+ 
+not
+ 
+need
+ 
+to
+ 
+install
+ 
+or
+ 
+run
+ 
+a
+ 
+separ
+ate
+ 
+database
+ 
+server.
+ 
+8.
+ 
+How
+ 
+the
+ 
+des?gn
+ 
+patterns
+ 
+work
+ 
+Facade
+ 
+Pattern
+ 
+File:
+ 
+???????????
+ 
+The
+ 
+Facade
+ 
+provides
+ 
+a
+ 
+simplified
+ 
+interface
+ 
+to
+ 
+the
+ 
+underlying
+ 
+operations.
+ 
+Instead
+ 
+of
+ 
+making
+ 
+the
+ 
+Flask
+ 
+route
+ 
+handle
+ 
+validation,
+ 
+price
+ 
+calculations,
+ 
+and
+ 
+database
+ 
+changes
+ 
+separately,
+ 
+the
+ 
+r
+oute
+ 
+can
+ 
+call
+ 
+a
+ 
+single
+ 
+higher
+-
+level
+ 
+method.
+ 
+Example
+ 
+conceptual
+ 
+flow:
+ 
+Flask
+ 
+route
+ 
+Store
+ 
+Facade
+ 
+Validation
+ 
+·
+ 
+Price
+ 
+calculation
+ 
+·
+ 
+Database
+ 
+operations
+ 
+Proxy
+ 
+Pattern
+ 
+File:
+ 
+???????????
+ 
+The
+ 
+Proxy
+ 
+checks
+ 
+the
+ 
+user's
+ 
+role
+ 
+before
+ 
+allowing
+ 
+an
+ 
+operation.
+ 
+It
+ 
+acts
+ 
+as
+ 
+a
+ 
+gatekeeper
+ 
+betwe
+en
+ 
+the
+ 
+route
+ 
+and
+ 
+the
+ 
+protected
+ 
+product
+ 
+operation.
+ 
+User
+ 
+request
+ 
+Product
+ 
+Proxy
+ 
+Check
+ 
+role
+ 
+and
+ 
+requested
+ 
+action
+ 
+
+
+PAGE 21
+Allow
+ 
+or
+ 
+reject
+ 
+the
+ 
+operation
+ 
+For
+ 
+example,
+ 
+an
+ 
+administrator
+ 
+may
+ 
+add
+ 
+a
+ 
+new
+ 
+game,
+ 
+while
+ 
+a
+ 
+customer
+ 
+may
+ 
+only
+ 
+browse
+ 
+pr
+oducts
+ 
+and
+ 
+place
+ 
+permitted
+ 
+orders.
+ 
+The
+ 
+permission
+ 
+check
+ 
+must
+ 
+happen
+ 
+on
+ 
+the
+ 
+server,
+ 
+not
+ 
+ju
+st
+ 
+by
+ 
+hiding
+ 
+buttons
+ 
+in
+ 
+the
+ 
+HTML
+ 
+interface.
+ 
+9.
+ 
+Common
+ 
+errors
+ 
+and
+ 
+solut?ons
+ 
+Error
+ 
+Possible
+ 
+solution
+ 
+????????????????????
+?
+??
+?
+?????
+?
+?
+?????
+?
+???????
+ 
+Run
+ 
+???????
+?
+?
+?
+?
+???
+?
+???????
+?
+?????
+.
+ 
+???????
+?
+???????
+?
+??
+?
+???
+ 
+Stop
+ 
+the
+ 
+other
+ 
+server
+ 
+or
+ 
+configure
+ 
+a
+ 
+different
+ 
+port.
+ 
+????????????????
+ 
+Check
+ 
+that
+ 
+the
+ 
+HTML
+ 
+file
+ 
+is
+ 
+inside
+ 
+the
+ 
+?????????
+ 
+f
+older.
+ 
+??
+?
+????
+?
+?????
+ 
+Verify
+ 
+that
+ 
+the
+ 
+database
+ 
+initialization
+ 
+function
+ 
+runs
+ 
+when
+ 
+the
+ 
+application
+ 
+starts.
+ 
+???
+?
+?????????
+ 
+Check
+ 
+the
+ 
+user's
+ 
+role
+ 
+and
+ 
+the
+ 
+Proxy
+ 
+permission
+ 
+rules.
+ 
+???
+?
+???
+?
+?????
+ 
+Verify
+ 
+the
+ 
+URL
+ 
+and
+ 
+the
+ 
+Flask
+ 
+route
+ 
+definitions.
+ 
+10.
+ 
+Quest?ons
+ 
+for
+ 
+students
+ 
+After
+ 
+launching
+ 
+the
+ 
+application,
+ 
+students
+ 
+should
+ 
+be
+ 
+able
+ 
+to
+ 
+answer:
+ 
+1.
+ 
+What
+ 
+is
+ 
+Flask,
+ 
+and
+ 
+why
+ 
+is
+ 
+it
+ 
+used
+ 
+in
+ 
+this
+ 
+project?
+ 
+2.
+ 
+What
+ 
+is
+ 
+the
+ 
+purpose
+ 
+of
+ 
+SQLite?
+ 
+3.
+ 
+Which
+ 
+operations
+ 
+are
+ 
+examples
+ 
+of
+ 
+CRUD?
+ 
+4.
+ 
+How
+ 
+does
+ 
+the
+ 
+Facade
+ 
+Pattern
+ 
+simplify
+ 
+the
+ 
+application?
+ 
+5.
+ 
+How
+ 
+does
+ 
+the
+ 
+Proxy
+ 
+Pattern
+ 
+restrict
+ 
+access?
+ 
+6.
+ 
+Why
+ 
+should
+ 
+permissions
+ 
+be
+ 
+checked
+ 
+on
+ 
+the
+ 
+server?
+ 
+7.
+ 
+What
+ 
+happens
+ 
+to
+ 
+the
+ 
+stored
+ 
+data
+ 
+when
+ 
+the
+ 
+Flask
+ 
+server
+ 
+is
+ 
+stopped
+ 
+and
+ 
+restarted?
+ 
+8.
+ 
+How
+ 
+could
+ 
+the
+ 
+application
+ 
+be
+ 
+extended
+ 
+with
+ 
+product
+ 
+categories,
+ 
+order
+ 
+status,
+ 
+or
+ 
+pay
+ment
+ 
+simulation?
+ 
+Expected
+ 
+result:
+ 
+a
+ 
+working
+ 
+local
+ 
+web
+ 
+application
+ 
+where
+ 
+an
+ 
+administrator
+ 
+manages
+ 
+gami
+ng
+ 
+products,
+ 
+customers
+ 
+can
+ 
+browse
+ 
+and
+ 
+place
+ 
+orders,
+ 
+SQLite
+ 
+stores
+ 
+the
+ 
+data,
+ 
+and
+ 
+the
+ 
+Fac
+ade
+ 
+and
+ 
+Proxy
+ 
+patterns
+ 
+organize
+ 
+the
+ 
+application
+ 
+logic
+ 
+and
+ 
+access
+ 
+control.
+ 
+ 
+ 

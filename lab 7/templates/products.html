@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>Игровые товары</h1>
+<p>Выберите товар и количество, чтобы оформить заказ.</p>
+{% if session.role == 'admin' %}<a class="button" href="{{ url_for('product_form') }}">Добавить товар</a>{% endif %}
+<div class="grid">
+{% for product in products %}
+<article class="card">
+  <p class="muted">{{ product.category }} · №{{ product.id }}</p>
+  <h2>{{ product.name }}</h2>
+  <p class="price">${{ '%.2f'|format(product.price) }}</p>
+  <form method="post" action="{{ url_for('add_order', product_id=product.id) }}">
+    <label for="quantity-{{ product.id }}">Количество</label>
+    <input id="quantity-{{ product.id }}" type="number" name="quantity" min="1" max="10000" value="1" required>
+    <button>Оформить заказ</button>
+  </form>
+  {% if session.role == 'admin' %}
+  <a href="{{ url_for('product_form', product_id=product.id) }}">Редактировать</a>
+  <form method="post" action="{{ url_for('delete_product', product_id=product.id) }}">
+    <button class="danger">Удалить товар</button>
+  </form>
+  {% endif %}
+</article>
+{% else %}<p>Товаров пока нет.</p>{% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>{{ 'Все заказы' if session.role == 'admin' else 'Мои заказы' }}</h1>
+<div class="table-wrap"><table>
+<thead><tr><th>№</th><th>Покупатель</th><th>Товар</th><th>Количество</th><th>Сумма</th></tr></thead>
+<tbody>
+{% for order in orders %}
+<tr><td>{{ order.id }}</td><td>{{ order.customer_name }}</td><td>{{ order.product_name }}</td><td>{{ order.quantity }}</td><td>${{ '%.2f'|format(order.total_price) }}</td></tr>
+{% else %}<tr><td colspan="5">Заказов пока нет. Оформите заказ на странице товаров.</td></tr>{% endfor %}
+</tbody>
+</table></div>
+{% endblock %}

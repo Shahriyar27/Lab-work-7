@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smart Game Store — лабораторная №7</title>
+  <style>* { box-sizing: border-box; }
+body { margin: 0; background: #f3f5f9; color: #182335; font: 16px/1.5 Arial, sans-serif; }
+header { background: #17243b; color: white; padding: 20px 5%; display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+header a { color: white; }
+.brand { font-weight: bold; font-size: 22px; }
+nav { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+nav form { margin: 0; }
+nav span { font-size: 14px; color: #d5dfef; }
+a { color: #2451ae; }
+main { max-width: 1150px; margin: 32px auto; padding: 0 20px; min-height: 65vh; }
+h1 { font-size: 28px; }
+h2 { font-size: 20px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); gap: 18px; margin-top: 24px; }
+.card, .panel { background: white; border: 1px solid #dbe1eb; border-radius: 12px; padding: 24px; }
+.panel { max-width: 470px; margin: 40px auto; }
+.price { font-size: 26px; font-weight: bold; }
+.muted { color: #53617a; }
+form { display: grid; gap: 8px; margin: 18px 0; }
+input { min-width: 0; padding: 11px; border: 1px solid #a4aec0; border-radius: 6px; font: inherit; }
+button, .button { display: inline-block; padding: 11px 16px; border: 0; border-radius: 6px; background: #2857b7; color: white; font: inherit; cursor: pointer; text-decoration: none; }
+button:hover, .button:hover { background: #1c4290; }
+.danger { background: #ad3243; }
+.danger:hover { background: #852433; }
+.message { background: #e0efdf; border-left: 4px solid #32783a; padding: 14px; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; background: white; }
+th, td { text-align: left; padding: 14px; border-bottom: 1px solid #dbe1eb; }
+th { background: #e8edf6; }
+footer { text-align: center; padding: 24px; color: #53617a; font-size: 14px; }
+</style>
+</head>
+<body>
+<header>
+  <a class="brand" href="/">Smart Game Store</a>
+  
+  <nav>
+    <a href="/">Товары</a>
+    <a href="/orders">Заказы</a>
+    <span>student · покупатель</span>
+    <form method="post" action="/logout"><button>Выйти</button></form>
+  </nav>
+  
+</header>
+<main>
+  
+  
+<section class="panel"><h1>Операция недоступна</h1><p>Управлять товарами может только администратор.</p><a href="/">К товарам</a></section>
+
+</main>
+<footer>Лабораторная №7 · Python + Flask + SQLite · цены в условных долларах</footer>
+</body>
+</html>

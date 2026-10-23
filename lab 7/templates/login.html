@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="panel">
+  <h1>Вход в магазин</h1>
+  <p>Выберите учебную учётную запись.</p>
+  <form method="post">
+    <label for="username">Логин</label>
+    <input id="username" name="username" required autocomplete="username">
+    <label for="password">Пароль</label>
+    <input id="password" name="password" type="password" required autocomplete="current-password">
+    <button>Войти</button>
+  </form>
+  <p>Администратор: <b>admin / admin123</b></p>
+  <p>Покупатель: <b>student / student123</b></p>
+</section>
+{% endblock %}
